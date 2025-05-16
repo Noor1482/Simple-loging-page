@@ -1,1 +1,186 @@
 # Simple-loging-page
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Social Trading Tracker</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#121212; color:#eee; margin: 0; padding: 20px; }
+  #login, #tracker { max-width: 600px; margin: auto; }
+  #tracker { display: none; }
+  input, button { padding: 8px; margin: 5px 0; width: 100%; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+  th { background: #222; }
+  .blue { color: #4eaaff; }
+  .yellow { color: #ffcc00; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>Login</h2>
+  <input type="text" id="username" placeholder="Username" />
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="login()">Log In</button>
+  <p id="loginMsg" style="color:#f66"></p>
+</div>
+
+<div id="tracker">
+  <h2>Social Trading Profit Tracker</h2>
+  <div>
+    <strong>Gold Scalp - 1 (Blue):</strong> Starting Equity: $57.15
+  </div>
+  <div>
+    <label>Daily Profit/Loss: <input type="number" step="0.01" id="profit1" /></label><br />
+    <label>Performance Fee: <input type="number" step="0.01" id="fee1" /></label><br />
+    <label>Withdrawal: <input type="number" step="0.01" id="withdraw1" /></label><br />
+    <button onclick="addEntry(1)">Add Entry</button>
+  </div>
+
+  <table id="table1">
+    <thead>
+      <tr><th>Date</th><th>Start Equity</th><th>Profit</th><th>Fee</th><th>Withdrawal</th><th>End Equity</th><th>ROI %</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <hr/>
+
+  <div>
+    <strong>Gold Scalp - 2 (Yellow):</strong> Starting Equity: $42.85
+  </div>
+  <div>
+    <label>Daily Profit/Loss: <input type="number" step="0.01" id="profit2" /></label><br />
+    <label>Performance Fee: <input type="number" step="0.01" id="fee2" /></label><br />
+    <label>Withdrawal: <input type="number" step="0.01" id="withdraw2" /></label><br />
+    <button onclick="addEntry(2)">Add Entry</button>
+  </div>
+
+  <table id="table2">
+    <thead>
+      <tr><th>Date</th><th>Start Equity</th><th>Profit</th><th>Fee</th><th>Withdrawal</th><th>End Equity</th><th>ROI %</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <hr/>
+
+  <h3>Overall Summary</h3>
+  <div id="overallSummary"></div>
+</div>
+
+<script>
+  // Hardcoded user
+  const USERNAME = "Noor11";
+  const PASSWORD = "1234567890";
+
+  // Starting equity for both strategies
+  let startEquity1 = 57.15;
+  let startEquity2 = 42.85;
+
+  // Store entries
+  let entries1 = [];
+  let entries2 = [];
+
+  function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    if (user === USERNAME && pass === PASSWORD) {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('tracker').style.display = 'block';
+      updateOverall();
+    } else {
+      document.getElementById('loginMsg').innerText = "Invalid username or password";
+    }
+  }
+
+  function addEntry(strategy) {
+    const date = new Date().toISOString().split('T')[0];
+    let profit, fee, withdraw;
+    let entries, startEquity;
+
+    if (strategy === 1) {
+      profit = parseFloat(document.getElementById('profit1').value) || 0;
+      fee = parseFloat(document.getElementById('fee1').value) || 0;
+      withdraw = parseFloat(document.getElementById('withdraw1').value) || 0;
+      entries = entries1;
+      startEquity = entries.length ? entries[entries.length-1].endEquity : startEquity1;
+    } else {
+      profit = parseFloat(document.getElementById('profit2').value) || 0;
+      fee = parseFloat(document.getElementById('fee2').value) || 0;
+      withdraw = parseFloat(document.getElementById('withdraw2').value) || 0;
+      entries = entries2;
+      startEquity = entries.length ? entries[entries.length-1].endEquity : startEquity2;
+    }
+
+    const netProfit = profit - fee;
+    const endEquity = startEquity + netProfit - withdraw;
+    const roi = ((endEquity - (strategy === 1 ? startEquity1 : startEquity2)) / (strategy === 1 ? startEquity1 : startEquity2) * 100).toFixed(2);
+
+    const entry = { date, startEquity, profit, fee, withdraw, endEquity, roi };
+    entries.push(entry);
+
+    updateTable(strategy);
+    updateOverall();
+
+    // Clear inputs
+    if (strategy === 1) {
+      document.getElementById('profit1').value = '';
+      document.getElementById('fee1').value = '';
+      document.getElementById('withdraw1').value = '';
+    } else {
+      document.getElementById('profit2').value = '';
+      document.getElementById('fee2').value = '';
+      document.getElementById('withdraw2').value = '';
+    }
+  }
+
+  function updateTable(strategy) {
+    let tbody, entries;
+    if (strategy === 1) {
+      tbody = document.querySelector('#table1 tbody');
+      entries = entries1;
+    } else {
+      tbody = document.querySelector('#table2 tbody');
+      entries = entries2;
+    }
+
+    tbody.innerHTML = '';
+    entries.forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${e.date}</td>
+        <td>${e.startEquity.toFixed(2)}</td>
+        <td>${e.profit.toFixed(2)}</td>
+        <td>${e.fee.toFixed(2)}</td>
+        <td>${e.withdraw.toFixed(2)}</td>
+        <td>${e.endEquity.toFixed(2)}</td>
+        <td>${e.roi}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function updateOverall() {
+    const lastEquity1 = entries1.length ? entries1[entries1.length - 1].endEquity : startEquity1;
+    const lastEquity2 = entries2.length ? entries2[entries2.length - 1].endEquity : startEquity2;
+    const totalStart = startEquity1 + startEquity2;
+    const totalEnd = lastEquity1 + lastEquity2;
+
+    const totalProfit = totalEnd - totalStart;
+
+    const overallROI = ((totalProfit) / totalStart * 100).toFixed(2);
+
+    document.getElementById('overallSummary').innerHTML = `
+      <p>Total Start Equity: $${totalStart.toFixed(2)}</p>
+      <p>Total Current Equity: $${totalEnd.toFixed(2)}</p>
+      <p>Total Profit: $${totalProfit.toFixed(2)}</p>
+      <p>Overall ROI: ${overallROI}%</p>
+    `;
+  }
+</script>
+
+</body>
+</html>
